@@ -1,6 +1,6 @@
 ---
 title: "A Theory of Everything - for Cycling"
-author: "Trent Lopata"
+author: "trendy_lama"
 output:
   word_document: default
   pdf_document: default
