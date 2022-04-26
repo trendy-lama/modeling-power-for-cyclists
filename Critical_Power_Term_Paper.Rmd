@@ -8,23 +8,6 @@ output:
 ```{r}
 power_curve = read.table("power_curve.csv", header = TRUE, sep = ",")
 ```
-## Introduction
-I have three goals in writing this paper. The first is to derive and explain a model that can predict a cyclist’s *maximum average power output* at a given time *t*. The second is to apply this model to real world power data and make predictions. The final goal is to explain the practical uses for this model, mainly how it can give riders an edge in training and race strategy by *optimally allocating power*. The main insight from this model is that cycling is an optimization problem, where the finite resource of anaerobic power is optimized.
-
-There are three models that give accurate understandable predictions of maximum average power. The first is Monod and Scherrer (1965), which I will focus on. It features two parameters which form a simple basis for modeling maximum average power. The second is Morton (1996) which adds time constants to improve predictions at low values of *t*. The third is Alvarez (2002) which adds exponential decay terms to improve predictions at high values of *t*.   
-There are more iterations of this basic model that try to refine the predictions at extreme time intervals, but these models are much more complex. The trade-off for describing the world with math is elegant simplicity or maximalism for accuracy. Despite the difficulty of using math to model the world, the predictions models make have tremendous value. There are billions of dollars predicting our next click, for instance, all predicated on generalizing from past data.
-
-Imagine you could know your expected score on a test before you even attempt it. Would knowing your capacity to perform change your study habits? Would it change the way you take the test? It would be rational to study harder if your expected score was a C. You could more efficiently allocate your time to that class if you knew you are likely to get an A on another test. Having this informational edge allows one to optimize the finite resource of time.
-
-For cycling, power is the finite resource that needs to be optimized. Good economics consists of optimizing finite resources. An informational edge is possible in cycling by modeling maximum average power for any given effort. It is used by smart cyclists to *pace their efforts* and *avoid unnecessary fatigue*. Since cyclists only have a limited supply of power, using that power inefficiently can be dire. Sub-optimally allocating power can not only lead to poor race results, but injuries, poor training patterns, and unnecessary risk.
-
-## Deriving the Critical Power Model
-The simplest and most intuitive model that predicts maximum work capacity is Monod and Scherrer (1965) which has two parameters: *W'* and critical power (*CP*). *W'* represents a *finite amount of energy* that is depleted. This is the energy that is used in a sprint which is intense but not sustainable. W' is like any other scarce resource like money, time, or fossil fuels. *CP* represents the *"maximum rate [muscles] can keep up for a very long time without fatigue"* (P. 329).Today, critical power is referred to as aerobic threshold. This is the point where the legs begin to fill with lactic acid and breathing becomes difficult. Threshold power is the power that can be held for one hour, which is commonly referred to as functional threshold power or "FTP". Monod and Scherrer (1965) define the relationship between these two parameters as $P(t) = W'/t +CP$. *P* represents the maximum average power (*MAP*) that can be held for a given value of *t*.  This relationship implies that *P(t)* is a concave up hyperbola that is asymptotic at $t=0$ and $t=infinity$. More subtly, notice that *W'* is being discounted by *t*. *W'*, therefore, depletes over time.
-
-As mentioned earlier, the predictions at values less than three minutes and greater than thirty minutes are problematic for Monod and Scherrer (1965). To remedy the inaccuracies at the asymptotes, Morton (1996) purposes adding short duration limits: $P(t) = W’ * [t − (W’/(CP − Pmax))] + CP$. These added terms improve the model's predictions at short time intervals. Alvarez (2002) adds exponential decay terms to improve the model's predictions at longer time intervals: $P(t) = Pmax*[tau1/t*(1−e(−t/tau1)) − tau1a/t*(1− e(−t/tau1a)) +CP * [ tau2n/t * (1 − e(−t/tau2n)) − tau2a/t * (1 − e(−t/tau2a))]$. These additions are beyond my math background, but they are worth mentioning. For the purposes of this paper, I will be using Monod and Scherrer (1965).
-
-## Real World Example
-Does the model fit real world data? If the model has no connection to reality, then it is completely useless. The data I am using is my own maximum average power values from the past six months on Strava. This dataset, though only forty eight observations, consist of my best efforts from over two-hundred hours of riding. The sample, therefore, is inclusive of hundreds of efforts but only the best have been selected. We can see that this simple model fits my best efforts curve very well. Remember, Monod and Scherrer (1965) predict that we will see a concave up hyperbola asymptotic at $t=0$ and $t=infinity$.  
 
 ```{r}
 plot(power_curve$time_sec, power_curve$power_watts, xlab = "Time in Seconds", ylab = "Max Average Power")
@@ -169,21 +152,4 @@ predict(fixed_joules_model, newdata = new_time)
 ```
 
 When we convert to watts, we get watts_hat = c(237.64, 404.06). These predictions are OK, the respective standardized residuals are 1.116 and 0.287. The reason why the standardized residuals are so low is because the residual standard error is high. To make this model more accurate, we need more statistical power and the more complex models of Morton (1996), and Alvarez (2002). Strava, Golden Cheeta, Cycling Analytics, and other cycling data platforms use some iteration of Monod and Scherrer (1965) - meaning that the original critical power model is still fundamentally useful.
-
-## A Theory of Everything for Cycling 
-
-By knowing ones MAP at every time interval, power can be optimally allocated. This gives one an advantage over those who race by feel or race against other people. Being the strongest rider is useless if one's finite anaerobic potential W' is used inefficiently. For future research, it would be interesting to know how one can optimize W' for a race where the conditions vary and individual efforts are not until exhaustion. 
-
-To speculate, if we can determine optimal pacing for each individual rider, competitive strategy would be completely different. The strongest rider would always win, like the strongest runner almost always does on the track. This would be the case because if all riders optimally allocate power, success would be a function of strength, *ceteris paribus*. I predict, however, that race strategies would adapt and cyclists would need to use game theory to determine the best strategy, given that all participants use optimal pacing. Perhaps, competitors would bait each other into expending more of their power and use other strategic tactics. If this development were to take place, modeling cycling would become a game theory problem, rather than the optimization problem it is now.
-
-## Conclusion
-In this paper, we derived the critical power model of Monod and Scherrer (1965), analyzed real world power data, and showed its potential to make training more precise. Though the analysis here is simple, there is a much greater potential for precision with more sophisticated statistics and complex models.
-
-Cycling is the ideal sport for data analysis, since almost every aspect of performance can be quantified and optimized. Economics, fundamentally, inquires into the problem of scarcity by seeking to optimize limited resources. In cycling, optimizing limited resources is optimally allocating power. The goal in cycling should not be to ride as possible or keep up with the fastest riders. The goal is to average the optimal amount of power for each effort. 
-
-Hopefully, this outline and analysis of critical power has posed more questions than it has answered. Though we do not have a theory of everything that explains our universe, we can have a theory of everything for cycling.
-
-
-
-
 
