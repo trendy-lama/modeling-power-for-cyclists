@@ -1,0 +1,189 @@
+---
+title: "A Theory of Everything - for Cycling"
+author: "Trent Lopata"
+output:
+  word_document: default
+  pdf_document: default
+---
+```{r}
+power_curve = read.table("power_curve.csv", header = TRUE, sep = ",")
+```
+## Introduction
+I have three goals in writing this paper. The first is to derive and explain a model that can predict a cyclist’s *maximum average power output* at a given time *t*. The second is to apply this model to real world power data and make predictions. The final goal is to explain the practical uses for this model, mainly how it can give riders an edge in training and race strategy by *optimally allocating power*. The main insight from this model is that cycling is an optimization problem, where the finite resource of anaerobic power is optimized.
+
+There are three models that give accurate understandable predictions of maximum average power. The first is Monod and Scherrer (1965), which I will focus on. It features two parameters which form a simple basis for modeling maximum average power. The second is Morton (1996) which adds time constants to improve predictions at low values of *t*. The third is Alvarez (2002) which adds exponential decay terms to improve predictions at high values of *t*.   
+There are more iterations of this basic model that try to refine the predictions at extreme time intervals, but these models are much more complex. The trade-off for describing the world with math is elegant simplicity or maximalism for accuracy. Despite the difficulty of using math to model the world, the predictions models make have tremendous value. There are billions of dollars predicting our next click, for instance, all predicated on generalizing from past data.
+
+Imagine you could know your expected score on a test before you even attempt it. Would knowing your capacity to perform change your study habits? Would it change the way you take the test? It would be rational to study harder if your expected score was a C. You could more efficiently allocate your time to that class if you knew you are likely to get an A on another test. Having this informational edge allows one to optimize the finite resource of time.
+
+For cycling, power is the finite resource that needs to be optimized. Good economics consists of optimizing finite resources. An informational edge is possible in cycling by modeling maximum average power for any given effort. It is used by smart cyclists to *pace their efforts* and *avoid unnecessary fatigue*. Since cyclists only have a limited supply of power, using that power inefficiently can be dire. Sub-optimally allocating power can not only lead to poor race results, but injuries, poor training patterns, and unnecessary risk.
+
+## Deriving the Critical Power Model
+The simplest and most intuitive model that predicts maximum work capacity is Monod and Scherrer (1965) which has two parameters: *W'* and critical power (*CP*). *W'* represents a *finite amount of energy* that is depleted. This is the energy that is used in a sprint which is intense but not sustainable. W' is like any other scarce resource like money, time, or fossil fuels. *CP* represents the *"maximum rate [muscles] can keep up for a very long time without fatigue"* (P. 329).Today, critical power is referred to as aerobic threshold. This is the point where the legs begin to fill with lactic acid and breathing becomes difficult. Threshold power is the power that can be held for one hour, which is commonly referred to as functional threshold power or "FTP". Monod and Scherrer (1965) define the relationship between these two parameters as $P(t) = W'/t +CP$. *P* represents the maximum average power (*MAP*) that can be held for a given value of *t*.  This relationship implies that *P(t)* is a concave up hyperbola that is asymptotic at $t=0$ and $t=infinity$. More subtly, notice that *W'* is being discounted by *t*. *W'*, therefore, depletes over time.
+
+As mentioned earlier, the predictions at values less than three minutes and greater than thirty minutes are problematic for Monod and Scherrer (1965). To remedy the inaccuracies at the asymptotes, Morton (1996) purposes adding short duration limits: $P(t) = W’ * [t − (W’/(CP − Pmax))] + CP$. These added terms improve the model's predictions at short time intervals. Alvarez (2002) adds exponential decay terms to improve the model's predictions at longer time intervals: $P(t) = Pmax*[tau1/t*(1−e(−t/tau1)) − tau1a/t*(1− e(−t/tau1a)) +CP * [ tau2n/t * (1 − e(−t/tau2n)) − tau2a/t * (1 − e(−t/tau2a))]$. These additions are beyond my math background, but they are worth mentioning. For the purposes of this paper, I will be using Monod and Scherrer (1965).
+
+## Real World Example
+Does the model fit real world data? If the model has no connection to reality, then it is completely useless. The data I am using is my own maximum average power values from the past six months on Strava. This dataset, though only forty eight observations, consist of my best efforts from over two-hundred hours of riding. The sample, therefore, is inclusive of hundreds of efforts but only the best have been selected. We can see that this simple model fits my best efforts curve very well. Remember, Monod and Scherrer (1965) predict that we will see a concave up hyperbola asymptotic at $t=0$ and $t=infinity$.  
+
+```{r}
+plot(power_curve$time_sec, power_curve$power_watts, xlab = "Time in Seconds", ylab = "Max Average Power")
+```
+
+This concave up hyperbola is exactly what Monod and Scherrer (1965) predict. It has asymptotes at $t=0$ and $t=infinity$. Lets see how well a linear regression models this relationship.  
+
+```{r}
+watts_model = lm(power_watts ~ time_sec, data = power_curve)
+summary(watts_model)
+power_curve$watts_res = residuals(watts_model)
+power_curve$watts_pred = predict(watts_model)
+plot(power_curve$watts_pred, power_curve$watts_res, xlab = "Predicted Power", ylab = "Residuals")
+```
+
+This is not a good model for the data, unsurprisingly. Obviously linearity is violated here. The R-squared is very low and the residual standard error is 171 watts, which would make any prediction with this model useless. Accuracy for this model should be tighter to have any practical use. A sensible transformation is to transform the response variable from watts to $total work$ in joules. Since a watt is one joule per second, we can transform the model into $TW(t) = W' + CP*t$. *TW(t)* should be a linear function of time, which makes sense considering that muscles put out more work over time. Let's plot it and see if it looks linear like Monod and Scherrer (1965) predict.
+
+```{r}
+plot(power_curve$time_sec, power_curve$work_j, xlab = "Time in Seconds", ylab = "Work in Joules")
+```
+
+That looks like an excellent transformation. Let's be more precise and model it as a simple linear regression with time predicting total work.  
+
+```{r}
+joules_cp_model = lm(work_j ~ time_sec, data = power_curve)
+summary(joules_cp_model)
+```
+
+The beta value for time (*CP*) is highly significant because it represents *CP*.The intercept is also highly significant and represents *W'*, the finite anaerobic work capacity. An important note here is that *W'* is in *joules*, while *CP* is in *watts* because the slope units of this relationship is in *joules/seconds* which is the definition of a *watt*.
+
+The predicted values indicate that my threshold power is around 197 watts. My anaerobic potential is 46595 watts, which is impossible. The best sprinters in the world can put out a max of around 2000 watts. Looking at this dataset, I have put out a max of 1000 watts. This nonsensical value can be explained by the idiosyncrasies of the model. In real life, there is no power output at $t=0$ but fitting a function to the data adds predictions that do not make sense. Morton (1996) adds time constants and additional terms to correct for these impossible predictions at low values of *t*. The standard error for *CP* is 3 watts which is approximately a 1.5% error. This prediction can be used for practical purposes, however, it is not as good as an accurate FTP test. My actual FTP is around 250 watts. Estimating FTP from a critical power curve is notoriously inaccurate and usually leads to significant under-prediction even when using more accurate models.
+
+Even though the predictor and intercept are highly significant and the R-squared value is extremely high, I will still check for any OLS assumption issues with our data. I expect linearity to be violated, but homosckedasticity and normality to be ok. I expect to see a funky residual plot. Since the data is time series, there is probably autocorrelation.
+
+```{r}
+power_curve$res = residuals(joules_cp_model)
+power_curve$pred = predict(joules_cp_model)
+
+plot(power_curve$pred, power_curve$res, pch = 19, xlab = "Predicted Work", ylab = "Residuals")
+```
+
+Normally, a pattern in the residuals would indicate that linearity is violated, but I suspect that this pattern can be explained by autocorrelation. homosckedasticity is ok, since there appears to be an equal number of residuals above and below zero. Normality will need to be tested by the Shapiro-Wilk test.  
+
+```{r}
+shapiro.test(power_curve$work_j)
+```
+
+Normality is violated, since H-not is rejected. This can be explained by either the data being from a non-iid sample or the autocorrelation. An iid sample is impractical because this model is for one specific rider and the data has to be time series. There appear to be a few points at high values of *t* that are having a large impact on our model. Lets check for outliers and high leverage points.  
+
+```{r}
+power_curve$leverage = hatvalues(joules_cp_model)
+```
+
+The high leverage cutoff for this dataset is >0.083. According to this criteria, there are four points that are considered high leverage. They all occur at high values of *t*: (t = 7200, 6300, 5400, 4200). This result does not surprise me, since all of these values were not maximum efforts for me.  Monod and Scherrer (1965) is also known to have issues at *t > 1800*. Let's check for any outliers but calculating the studentized residuals for these points. I expect t=7200 to be an outlier.
+
+```{r}
+require(MASS)
+power_curve$stud_res = stdres(joules_cp_model)
+qt(.025, 46)
+```
+I am concerned about the outlier at *t = 7200* which came in way below the model's prediction. This can be explained as not being a maximum effort because this value happened to be on a fast ride but not until exhaustion. Larger residuals make sense at these longer intervals because I have only done max efforts at a maximum of fifty five minutes. This model is also known to be inaccurate for any *t* value less than three minutes and greater than thirty minutes because it has not been adjusted to account for the asymptotic behavior of $Watts(t) = W'/t + CP$.
+
+I doubt there will any serious problem with outliers. The critical value for a t distribution with 46 degress of freedom is 2.012. According to this criteria *t=7200* is considered an outlier, with a studentized residual of -5.13. I will remove this point to make our predictions more accurate, since it does not fit the criteria of a maximum effort. This may be problematic because I have a small sample size, but I expect *TW(t)* to be robust. Removing this point will not solve the autocorrelation, however. T and t-1 are likely positively correlated, but I will run a Durbin-Watson test to be precise.
+
+```{r}
+require(car)
+durbinWatsonTest(joules_cp_model)
+```
+
+The Durbin-Watson test is significant, which means there is a problem with autocorrelation. There appears to be positive autocorrelation which makes sense considering that t-1 will be a good predictor for t and two of the regression conditions are violated. This does not necessarily need to be corrected, since the original linear adjustment fits the data extremely well. 
+
+I will remove the outlier and rerun the regression.
+
+```{r}
+fixed_power_curve = read.table("power_curve_fixed.csv", header = TRUE, sep = ",")
+fixed_joules_model = lm(work_j ~ time_sec, data = fixed_power_curve)
+summary(fixed_joules_model)
+```
+
+The model with *t=7200* removed looks a bit better than the previous one. The residual standard error is lower, the R-squared is higher, and the F-stat is more significant. Lets correct the autocorrelation now.
+
+```{r}
+auto_joules_model = ar.ols(fixed_power_curve$work_j, order.max = 46, demean = F, intercept = T)
+auto_joules_model
+```
+
+It appears that the optimal order for the autoregression is 23 which is impractical. However, I will create the suggested lagged variables to make the model more precise.  
+
+```{r}
+for(i in 1:23) {
+lag = NA
+lag[(i+1):47] = fixed_power_curve$work_j[1:(47-i)]
+fixed_power_curve = cbind(fixed_power_curve, lag)
+}
+
+colnames(fixed_power_curve) = c("power_watts", "work_j", "time_sec", "lag1", "lag2", "lag3", "lag4", "lag5", "lag6", "lag7", "lag8", "lag9", "lag10", "lag11", "lag12", "lag13", "lag14", "lag15", "lag16", "lag17", "lag18", "lag19", "lag20", "lag21", "lag22", "lag23")
+```
+
+It seems like the larger lags are not significant because they correlate less with *t*. After playing around with partial F-tests I settled on this model with four lag predictors. Adding more predictors made the residual standard error rise without adding much predictive quality. Unfortunately, cross validation is not applicable here because of the lagged variables and small sample size, so I cannot find the optimal model.
+
+
+```{r}
+auto_regression = lm(work_j ~ lag1 + lag9 + lag10 + lag17, data = fixed_power_curve)
+summary(auto_regression)
+anova(auto_regression)
+```
+
+The residual standard error is around fifty percent lower and the R-squared acutally went up! 
+
+Lets check the residual plot.
+
+```{r}
+fixed_power_curve$auto_res[24:47] = residuals(auto_regression)
+fixed_power_curve$auto_pred[24:47] = predict(auto_regression)
+plot(fixed_power_curve$auto_pred, fixed_power_curve$auto_res, xlab = "Predicted Work", ylab = "Residuals")
+```
+
+This plot looks much better!
+
+Finally, lets see if the autocorrelation is fixed or is not a problem.
+
+```{r}
+durbinWatsonTest(auto_regression)
+```
+
+After correcting for autocorrelation, it seems like the model with lagged terms is the best at predicting total work. Also, the autocorrelation has been completely eliminated, since the Durbin-Watson test has a very high p-value and a test stat close to 2. However, it is not practical to use this model to make quick predictions necessary to give cyclists an edge, since total work is a function of lagged variables rather than time.
+
+## Practical Uses
+The practical use of this model is very simple. Take for instance, an athlete wants to do a twenty minute effort at eighty percent intensity. They can use this model to predict their twenty minute maximum power, take eighty percent for that prediction, then they know how many watts they have to average over that interval. This adds precision to training, where one can do intervals at different percents of their maximum average power.
+
+Let's apply this analysis to predict points on my power curve that are not in the dataset with the joules_model. This simple model is not the most accurate but the logic will be easy to follow.
+
+t = 1290
+watts = 260
+
+t = 195
+watts = 366
+
+```{r}
+new_time = data.frame(time_sec=c(1290, 195))
+predict(fixed_joules_model, newdata = new_time)
+```
+
+When we convert to watts, we get watts_hat = c(237.64, 404.06). These predictions are OK, the respective standardized residuals are 1.116 and 0.287. The reason why the standardized residuals are so low is because the residual standard error is high. To make this model more accurate, we need more statistical power and the more complex models of Morton (1996), and Alvarez (2002). Strava, Golden Cheeta, Cycling Analytics, and other cycling data platforms use some iteration of Monod and Scherrer (1965) - meaning that the original critical power model is still fundamentally useful.
+
+## A Theory of Everything for Cycling 
+
+By knowing ones MAP at every time interval, power can be optimally allocated. This gives one an advantage over those who race by feel or race against other people. Being the strongest rider is useless if one's finite anaerobic potential W' is used inefficiently. For future research, it would be interesting to know how one can optimize W' for a race where the conditions vary and individual efforts are not until exhaustion. 
+
+To speculate, if we can determine optimal pacing for each individual rider, competitive strategy would be completely different. The strongest rider would always win, like the strongest runner almost always does on the track. This would be the case because if all riders optimally allocate power, success would be a function of strength, *ceteris paribus*. I predict, however, that race strategies would adapt and cyclists would need to use game theory to determine the best strategy, given that all participants use optimal pacing. Perhaps, competitors would bait each other into expending more of their power and use other strategic tactics. If this development were to take place, modeling cycling would become a game theory problem, rather than the optimization problem it is now.
+
+## Conclusion
+In this paper, we derived the critical power model of Monod and Scherrer (1965), analyzed real world power data, and showed its potential to make training more precise. Though the analysis here is simple, there is a much greater potential for precision with more sophisticated statistics and complex models.
+
+Cycling is the ideal sport for data analysis, since almost every aspect of performance can be quantified and optimized. Economics, fundamentally, inquires into the problem of scarcity by seeking to optimize limited resources. In cycling, optimizing limited resources is optimally allocating power. The goal in cycling should not be to ride as possible or keep up with the fastest riders. The goal is to average the optimal amount of power for each effort. 
+
+Hopefully, this outline and analysis of critical power has posed more questions than it has answered. Though we do not have a theory of everything that explains our universe, we can have a theory of everything for cycling.
+
+
+
+
+
